@@ -1,0 +1,47 @@
+name: Filter IPv6 Configs
+
+on:
+  push:
+    paths:
+      - 'python/ipv6.py'
+      - '.github/workflows/ipv6.yml'
+
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */24 * * *"
+jobs:
+  build:
+
+      runs-on: ubuntu-latest
+  
+      steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run IPv6 config filter script
+        run: python python/ipv6.py
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git add custom/ipv6.txt custom/ipv64.txt
+          if git status --porcelain | grep -qE "ipv6.txt|ipv64.txt"; then
+            echo "::set-output name=changed::true"
+          else
+            echo "::set-output name=changed::false"
+          fi
+
+      - name: Commit and push results
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "actions@github.com"
+          git commit -m "Update IPv6 configs"
+          git push
